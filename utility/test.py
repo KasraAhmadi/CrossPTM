@@ -1,8 +1,8 @@
 import argparse
 from time import time
 from tqdm import tqdm
-from data import prepare_dataloaders_ptm
-from model import prepare_models_secondary_structure_ptm
+from utility.data import prepare_dataloaders_ptm
+from utility.model import prepare_models_secondary_structure_ptm
 import pandas as pd
 import yaml
 import torch.nn.functional as F
@@ -10,12 +10,6 @@ import os
 import torch
 import numpy as np
 import umap
-import matplotlib.pyplot as plt
-from box import Box
-
-# device: CPU or GPU
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
 
 def remove_label(tensor, output, label):
     mask = tensor != label
@@ -67,7 +61,7 @@ def plot_prompt(prompt_layer_dict, epoch, result_path):
     plt.close()
 
 
-def predict(dataloader, net):
+def predict(dataloader, net, device):
     counter = 0
     progress_bar = tqdm(range(len(dataloader)))
     progress_bar.set_description("Steps")
@@ -112,6 +106,7 @@ def predict(dataloader, net):
 
 
 def main(args, dict_config):
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     configs = Box(dict_config)
 
     if isinstance(configs.fix_seed, int):
@@ -134,7 +129,7 @@ def main(args, dict_config):
     for i, (task_name, dataloader) in enumerate(dataloaders_dict['test'].items()):
         net.eval()
         start_time = time()
-        prediction_results, prot_id_results, position_results = predict(dataloader, net)
+        prediction_results, prot_id_results, position_results = predict(dataloader, net, device)
         end_time = time()
 
         # save prediction results into csv
@@ -143,11 +138,7 @@ def main(args, dict_config):
             "position": position_results,
             "prediction": prediction_results,
         }
-
-        df = pd.DataFrame(result_dic)
-        save_path = os.path.join(args.save_path, task_name + '_test_output.csv')
-        df.to_csv(save_path, index=False)
-        print("The prediction has been saved in " + save_path + ".")
+        print(result_dic)
 
         print("prediction time:", end_time - start_time)
 

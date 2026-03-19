@@ -11,7 +11,6 @@ from Bio import SeqIO
 from transformers import AutoTokenizer, T5Tokenizer
 
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 def find_indexes(string, chars):
     indexes = []
     for i, char in enumerate(string):

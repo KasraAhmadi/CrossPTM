@@ -8,8 +8,8 @@ from transformers.tokenization_utils_base import BatchEncoding
 from esm_adapterH.prompt_tuning import PrefixTuning
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-from model_coattention_tranception import CoattentiontraceptionBlock
-from linearmix import MLPMixPrompt
+from utility.model_coattention_tranception import CoattentiontraceptionBlock
+from utility.linearmix import MLPMixPrompt
 
 def verify_data_types(model, logging=None):
     # Verifying the datatypes.
@@ -421,6 +421,8 @@ class EncoderSSPTM(nn.Module):
             self.mlp = CoattentiontraceptionBlock(self.configs)
 
     def forward(self, x, task_ids,compute_saliency=False):
+        # Get device from model parameters
+        device = next(self.parameters()).device
         features = self.esm2(x['input_ids'].to(device), repr_layers=[self.esm2.num_layers], task_ids=task_ids,
                              configs=self.configs)['representations'][self.esm2.num_layers]
         if self.configs.task == 'linear_mix':

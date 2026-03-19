@@ -17,6 +17,7 @@ class ResMLP(torch.nn.Module):
                 layer_norm=True,
                 dropout=0.0,
                 residual=True,
+                device=None,
                 ):
     """MLP class for soft prompt re-parameterization. MLP can have a Residual connection.
     Args:
@@ -26,8 +27,12 @@ class ResMLP(torch.nn.Module):
             Defaults to 'MLP1'.
         emb_dimension (int, optional): Dimension of T5 model embeddings. Defaults to 512 (T5-small embedding dimension).
         residual (bool, optional): Whether to use residual connection in MLP. Defaults to True.
+        device (str or torch.device, optional): Device to place the model on. Defaults to None (will use 'cuda' if available, else 'cpu').
     """
     super().__init__()
+    if device is None:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    self.device = device
     assert module_type in ['MLP1', 'MLP2',
                             'transformer', 'LSTM', 'LSTM1', 'LSTM2']
     assert nonlinearity in ['relu', 'tanh', 'sigm']
@@ -67,11 +72,10 @@ class ResMLP(torch.nn.Module):
             nn.Linear(emb_dimension, emb_dimension))
 
     elif module_type == 'transformer':
-        device = 'cuda'
         self.encoder_layer = nn.TransformerEncoderLayer(
-            d_model=emb_dimension, nhead=2, dropout=0.05).to(device)
+            d_model=emb_dimension, nhead=2, dropout=0.05).to(self.device)
         self.module = nn.TransformerEncoder(
-            self.encoder_layer, num_layers=2).to(device)
+            self.encoder_layer, num_layers=2).to(self.device)
 
     self.residual = residual
     #if self.residual:
