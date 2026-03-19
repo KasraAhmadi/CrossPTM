@@ -78,7 +78,7 @@ COPY ./models/your_new_model.pt /app/your_new_model.pt
 1. Change the `DEVICE` environment variable in the Dockerfile:
 
 ```dockerfile
-ENV DEVICE=cuda
+ENV RUN_DEVICE=cuda
 ```
 
 ---
