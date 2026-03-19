@@ -40,53 +40,45 @@ The API will be available at `http://127.0.0.1:8000`.
 Below is the Dockerfile used to build the image. Two common customizations are highlighted:
 
 ```dockerfile
-FROM python:3.10-slim
+FROM python:3.9-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
+# --- New: Default Environment Variables ---
+ENV MODEL_PATH=/app/model_1_0.pth
+ENV CONFIG_PATH=/app/config/test.yaml
+ENV TORCH_HOME=/app/.cache/torch
+ENV RUN_DEVICE=cpu
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
+COPY ./models/model_1_0.pth /app/model_1_0.pth
 COPY . .
-
-# ⬇️  Replace this path with your own model file if you swap models
-ENV MODEL_PATH=/app/models/your_model.pt
-
-# ⬇️  Change 'cpu' to 'cuda' here if you want to run on GPU
-ENV DEVICE=cpu
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python3", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 #### 🔄 Changing the Model
 
-Replace the model file referenced by `MODEL_PATH` with your new model:
+Replace the model file referenced by `MODEL_PATH` and `COPY` with your new model:
 
 ```dockerfile
 ENV MODEL_PATH=/app/models/your_new_model.pt
-```
-
-Or mount a model from your host machine at runtime:
-
-```bash
-docker run -p 8000:8000 -v /path/to/your/model.pt:/app/models/your_model.pt ptm-prediction
+COPY ./models/your_new_model.pt /app/your_new_model.pt
 ```
 
 #### ⚡ Enabling GPU Support
 
-1. Ensure you have the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed.
-2. Change the `DEVICE` environment variable in the Dockerfile:
+1. Change the `DEVICE` environment variable in the Dockerfile:
 
 ```dockerfile
 ENV DEVICE=cuda
-```
-
-3. Run with GPU access:
-
-```bash
-docker run --gpus all -p 8000:8000 ptm-prediction
 ```
 
 ---
@@ -131,16 +123,16 @@ POST http://127.0.0.1:8000/predict
 
 The `ptm_type` field accepts the following values:
 
-| Value                   | Modification Type          | Target Residue |
-|-------------------------|----------------------------|----------------|
-| `Phosphorylation_ST`    | Phosphorylation            | Serine / Threonine (S/T) |
-| `Phosphorylation_Y`     | Phosphorylation            | Tyrosine (Y)   |
-| `Ubiquitination_K`      | Ubiquitination             | Lysine (K)     |
-| `Acetylation_K`         | Acetylation                | Lysine (K)     |
-| `Methylation_R`         | Methylation                | Arginine (R)   |
-| `NlinkedGlycosylation_N`| N-linked Glycosylation     | Asparagine (N) |
-| `Methylation_K`         | Methylation                | Lysine (K)     |
-| `Sumoylation_K`         | SUMOylation                | Lysine (K)     |
+| Value                   | Modification Type          
+|-------------------------|----------------------------
+| `Phosphorylation_ST`    | Phosphorylation            
+| `Phosphorylation_Y`     | Phosphorylation            
+| `Ubiquitination_K`      | Ubiquitination             
+| `Acetylation_K`         | Acetylation                
+| `Methylation_R`         | Methylation                
+| `NlinkedGlycosylation_N`| N-linked Glycosylation     
+| `Methylation_K`         | Methylation                
+| `Sumoylation_K`         | SUMOylation              
 
 ---
 
@@ -156,38 +148,6 @@ curl -X 'POST' \
     "fasta_content": ">4EBP_DROME\nMSASPTARQAITQALPMITRKVVISDPIQMPEVYSSTPGGTLYSTTPGGTKLIYERAFMKNLRGSPLSQTPPSNVPSCLLRGTPRTPFRKCVPVPTELIKQTKSLKIEDQEQFQLDL",
     "ptm_type": "Phosphorylation_ST"
   }'
-```
-
-### Python (requests)
-
-```python
-import requests
-
-url = "http://127.0.0.1:8000/predict"
-
-payload = {
-    "fasta_content": ">4EBP_DROME\nMSASPTARQAITQALPMITRKVVISDPIQMPEVYSSTPGGTLYSTTPGGTKLIYERAFMKNLRGSPLSQTPPSNVPSCLLRGTPRTPFRKCVPVPTELIKQTKSLKIEDQEQFQLDL",
-    "ptm_type": "Phosphorylation_ST"
-}
-
-response = requests.post(url, json=payload)
-print(response.json())
-```
-
-### JavaScript (fetch)
-
-```javascript
-const response = await fetch("http://127.0.0.1:8000/predict", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    fasta_content: ">4EBP_DROME\nMSASPTARQAITQALPMITRKVVISDPIQMPEVYSSTPGGTLYSTTPGGTKLIYERAFMKNLRGSPLSQTPPSNVPSCLLRGTPRTPFRKCVPVPTELIKQTKSLKIEDQEQFQLDL",
-    ptm_type: "Phosphorylation_ST"
-  })
-});
-
-const data = await response.json();
-console.log(data);
 ```
 
 ---
