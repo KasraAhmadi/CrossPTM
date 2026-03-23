@@ -9,7 +9,7 @@ from types import SimpleNamespace
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
-
+from typing import List, Union
 # Your project-specific imports
 from utility.data import prepare_dataloaders_ptm
 from utility.model import prepare_models_secondary_structure_ptm
@@ -63,54 +63,59 @@ app = FastAPI(lifespan=lifespan)
 
 class InferenceRequest(BaseModel):
     fasta_content: str
-    ptm_type: str
+    # Updated to accept a single string or a list of strings
+    ptm_type: Union[str, List[str]]
 
 @app.post("/predict")
 async def run_inference(request: InferenceRequest):
     if "net" not in ml_models:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
-    # Use persistent model
     net = ml_models["net"]
     configs = ml_models["configs"]
     device = ml_models["device"]
 
-    # Basic FASTA validation
     if ">" not in request.fasta_content:
-        raise HTTPException(status_code=400, detail="Invalid FASTA: Missing header line starting with '>'")
+        raise HTTPException(status_code=400, detail="Invalid FASTA format")
 
-    # Create temporary environment for this specific request
-    with tempfile.TemporaryDirectory() as temp_dir:
-        fasta_path = os.path.join(temp_dir, 'input.fasta')
-        with open(fasta_path, 'w') as f:
-            f.write(request.fasta_content)
+    # Normalize ptm_type to always be a list for consistent processing
+    ptm_types = [request.ptm_type] if isinstance(request.ptm_type, str) else request.ptm_type
 
-        # Mock args for the existing dataloader function
-        args = SimpleNamespace(
-            data_path=fasta_path,
-            PTM_type=request.ptm_type,
-            save_path=temp_dir,
-            model_path=ml_models["model_path"]
-        )
 
-        try:
-            dataloaders_dict = prepare_dataloaders_ptm(args, configs)
-            
-            results = []
-            for task_name, dataloader in dataloaders_dict['test'].items():
-                prediction_results, prot_id_results, position_results = predict(dataloader, net, device)
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fasta_path = os.path.join(temp_dir, 'input.fasta')
+            with open(fasta_path, 'w') as f:
+                f.write(request.fasta_content)
+            ptm_task_results = []
+
+            # Loop through each requested PTM type
+            for ptm in ptm_types:
+                args = SimpleNamespace(
+                    data_path=fasta_path,
+                    PTM_type=ptm,
+                    save_path=temp_dir,
+                    model_path=ml_models["model_path"]
+                )
+
+                # Prepare dataloader for this specific PTM
+                dataloaders_dict = prepare_dataloaders_ptm(args, configs)
                 
-                results.append({
-                    "task": task_name,
-                    "prot_id": prot_id_results,
-                    "position": position_results,
-                    # Convert numpy/tensor to list for JSON
-                    "prediction": [float(p) for p in prediction_results] 
-                })
+                for task_name, dataloader in dataloaders_dict['test'].items():
+                    prediction_results, prot_id_results, position_results = predict(dataloader, net, device)
+                    ptm_task_results.append({
+                        "task": task_name,
+                        "position": position_results,
+                        "prediction": [float(p) for p in prediction_results] 
+                    })
+                
+                # Store results keyed by the ptm name
 
-            return {
-                "status": "success",
-                "results": results,
-            }
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Inference failed: {str(e)}")
+        return {
+            "status": "success",
+            "results": ptm_task_results,
+        }
+
+    except Exception as e:
+        # Log the error here if you have a logger
+        raise HTTPException(status_code=500, detail=f"Inference failed: {str(e)}")

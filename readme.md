@@ -103,17 +103,17 @@ POST http://127.0.0.1:8000/predict
 
 #### Request Body
 
-| Field           | Type     | Required | Description                                          |
-|-----------------|----------|----------|------------------------------------------------------|
+| Field           | Type     | Required | Description                                           |
+|-----------------|----------|----------|-------------------------------------------------------|
 | `fasta_content` | `string` | ✅ Yes   | Protein sequence in FASTA format (must include `>` header) |
-| `ptm_type`      | `string` | ✅ Yes   | Type of PTM to predict. See [PTM Types](#-ptm-types) |
+| `ptm_type`      |[`string`]| ✅ Yes   | Type of PTMs to predict. See [PTM Types](#-ptm-types) |
 
 #### Request Schema
 
 ```json
 {
   "fasta_content": "string",
-  "ptm_type": "string"
+  "ptm_type": ["string"]
 }
 ```
 
@@ -146,7 +146,7 @@ curl -X 'POST' \
   -H 'Content-Type: application/json' \
   -d '{
     "fasta_content": ">4EBP_DROME\nMSASPTARQAITQALPMITRKVVISDPIQMPEVYSSTPGGTLYSTTPGGTKLIYERAFMKNLRGSPLSQTPPSNVPSCLLRGTPRTPFRKCVPVPTELIKQTKSLKIEDQEQFQLDL",
-    "ptm_type": "Phosphorylation_ST"
+    "ptm_type": ["Phosphorylation_ST","Phosphorylation_Y"]
   }'
 ```
 
@@ -159,17 +159,7 @@ curl -X 'POST' \
 **Status Code:** `200 OK`
 
 ```json
-{
-  "status": "success",
-  "results": [
-    {
-      "task": "Phosphorylation_ST",
-      "prot_id": ["4EBP_DROME", "4EBP_DROME", "..."],
-      "position": [4, 7, 21, "..."],
-      "prediction": [0.923, 0.041, 0.876, "..."]
-    }
-  ]
-}
+{"status":"success","results":[{"task":"Phosphorylation_ST","position":[2,4,6],"prediction":[0.986,0.998,0.895]},{"task":"Phosphorylation_Y","position":[34,43,54],"prediction":[0.996,0.986,0.98]}]}
 ```
 
 #### Response Fields
@@ -179,9 +169,8 @@ curl -X 'POST' \
 | `status`                 | `string`        | `"success"` on a successful inference                               |
 | `results`                | `array`         | List of result objects, one per prediction task                     |
 | `results[].task`         | `string`        | The PTM task name corresponding to the request                      |
-| `results[].prot_id`      | `array[string]` | Protein identifiers for each predicted site                         |
 | `results[].position`     | `array[int]`    | 1-based residue positions of candidate PTM sites                    |
-| `results[].prediction`   | `array[float]`  | Predicted probability scores (0–1) for each site                   |
+| `results[].prediction`   | `array[float]`  | Predicted probability scores (0–1) for each site                    |
 
 > **Interpreting scores:** A `prediction` value closer to `1.0` indicates a higher confidence that the residue at that position is a PTM site.
 
