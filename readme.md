@@ -15,6 +15,11 @@ A FastAPI-based REST service for predicting Post-Translational Modifications (PT
 
 ---
 
+### Download the model
+
+Download the the latest model and locate it in models folder in project directory
+Latest Model: https://drive.usercontent.google.com/download?id=1ldPrBSvkjqprzIlo4EkA_nALHieCiVEN&authuser=0
+
 ## 🐳 Docker Setup
 
 ### Prerequisites
@@ -26,10 +31,7 @@ A FastAPI-based REST service for predicting Post-Translational Modifications (PT
 ```bash
 docker build -t ptm-prediction .
 ```
-### Download the model
 
-Download the the latest model and locate it in models folder in project directory
-Latest Model: https://drive.usercontent.google.com/download?id=1ldPrBSvkjqprzIlo4EkA_nALHieCiVEN&authuser=0
 
 ### Run the Container
 
