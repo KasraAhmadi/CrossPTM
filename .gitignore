@@ -1,5 +1,6 @@
 .git
 venv_clean
+jobs
 __pycache__
 .ipynb_checkpoints
 models/model_1_0.pth

@@ -1,4 +1,5 @@
 .git
 venv_clean
+jobs
 __pycache__
 .ipynb_checkpoints
